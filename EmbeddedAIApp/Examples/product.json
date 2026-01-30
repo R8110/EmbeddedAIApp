@@ -1,0 +1,41 @@
+{
+  "structure": {
+    "entityName": "Product",
+    "fields": [
+      {
+        "name": "Id",
+        "type": "uuid"
+      },
+      {
+        "name": "Name",
+        "type": "product"
+      },
+      {
+        "name": "Description",
+        "type": "paragraph"
+      },
+      {
+        "name": "Price",
+        "type": "price"
+      },
+      {
+        "name": "Department",
+        "type": "department"
+      },
+      {
+        "name": "Color",
+        "type": "color"
+      },
+      {
+        "name": "InStock",
+        "type": "boolean"
+      },
+      {
+        "name": "SKU",
+        "type": "string"
+      }
+    ]
+  },
+  "count": 20,
+  "format": "json"
+}

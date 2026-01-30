@@ -1,0 +1,44 @@
+{
+  "structure": {
+    "entityName": "Employee",
+    "fields": [
+      {
+        "name": "EmployeeId",
+        "type": "int",
+        "constraints": {
+          "autoIncrement": true
+        }
+      },
+      {
+        "name": "FirstName",
+        "type": "firstname"
+      },
+      {
+        "name": "LastName",
+        "type": "lastname"
+      },
+      {
+        "name": "Email",
+        "type": "email"
+      },
+      {
+        "name": "JobTitle",
+        "type": "jobtitle"
+      },
+      {
+        "name": "Department",
+        "type": "department"
+      },
+      {
+        "name": "HireDate",
+        "type": "date"
+      },
+      {
+        "name": "Salary",
+        "type": "decimal"
+      }
+    ]
+  },
+  "count": 15,
+  "format": "csv"
+}
