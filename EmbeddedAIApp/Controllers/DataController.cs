@@ -81,7 +81,7 @@ public class DataController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating data");
-            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+            return StatusCode(500, new { error = "An error occurred while generating data" });
         }
     }
 
@@ -123,7 +123,7 @@ public class DataController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating structure");
-            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+            return StatusCode(500, new { error = "An error occurred while validating structure" });
         }
     }
 
@@ -147,6 +147,12 @@ public class DataController : ControllerBase
                 return BadRequest(new { error = "Description is required" });
             }
 
+            // Limit description length to prevent excessive token usage
+            if (request.Description.Length > 1000)
+            {
+                return BadRequest(new { error = "Description must not exceed 1000 characters" });
+            }
+
             if (!await _aiService.IsAvailableAsync())
             {
                 return StatusCode(503, new { error = "AI service is unavailable" });
@@ -164,7 +170,7 @@ public class DataController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating structure");
-            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+            return StatusCode(500, new { error = "An error occurred while generating structure" });
         }
     }
 

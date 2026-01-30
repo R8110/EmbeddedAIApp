@@ -124,18 +124,18 @@ For nested objects, include a ""fields"" array in the field definition.";
 
             _logger.LogDebug("Raw AI response: {Response}", response);
 
-            // Clean up the response - remove markdown code blocks if present
+            // Clean up the response - remove markdown code blocks if present (defensive measure)
             var jsonResponse = response.Trim();
-            if (jsonResponse.StartsWith("```json"))
+            if (jsonResponse.Length > 7 && jsonResponse.StartsWith("```json"))
             {
                 jsonResponse = jsonResponse.Substring(7);
             }
-            else if (jsonResponse.StartsWith("```"))
+            else if (jsonResponse.Length > 3 && jsonResponse.StartsWith("```"))
             {
                 jsonResponse = jsonResponse.Substring(3);
             }
             
-            if (jsonResponse.EndsWith("```"))
+            if (jsonResponse.Length > 3 && jsonResponse.EndsWith("```"))
             {
                 jsonResponse = jsonResponse.Substring(0, jsonResponse.Length - 3);
             }
@@ -187,7 +187,7 @@ Respond with ONLY the data type name, nothing else.";
         {
             Model = _modelName,
             Prompt = prompt,
-            Stream = false
+            Stream = true // Set to true for async enumeration
         };
 
         await foreach (var streamResponse in _ollamaClient.GenerateAsync(request))

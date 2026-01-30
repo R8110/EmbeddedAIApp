@@ -59,9 +59,9 @@ dotnet run
 ```
 
 The API will be available at:
-- HTTP: `http://localhost:5000`
-- HTTPS: `https://localhost:5001`
-- Swagger UI: `http://localhost:5000` (root path)
+- HTTP: `http://localhost:5153`
+- HTTPS: `https://localhost:7126`
+- Swagger UI: `http://localhost:5153` (root path)
 
 ## Tech Stack
 

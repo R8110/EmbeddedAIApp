@@ -12,12 +12,17 @@ public class DataGeneratorService : IDataGeneratorService
 {
     private readonly ILogger<DataGeneratorService> _logger;
     private readonly IAIService _aiService;
-    private int _autoIncrementCounter = 1;
 
     public DataGeneratorService(ILogger<DataGeneratorService> logger, IAIService aiService)
     {
         _logger = logger;
         _aiService = aiService;
+    }
+
+    // Helper class to hold mutable state
+    private class GenerationContext
+    {
+        public int AutoIncrementCounter { get; set; } = 1;
     }
 
     public async Task<List<Dictionary<string, object>>> GenerateDataAsync(StructureDefinition structure, int count)
@@ -26,13 +31,12 @@ public class DataGeneratorService : IDataGeneratorService
 
         var faker = new Faker();
         var records = new List<Dictionary<string, object>>();
-
-        _autoIncrementCounter = 1;
+        var context = new GenerationContext();
 
         for (int i = 0; i < count; i++)
         {
             var record = new Dictionary<string, object>();
-            await GenerateFieldsAsync(structure.Fields, record, faker);
+            await GenerateFieldsAsync(structure.Fields, record, faker, context);
             records.Add(record);
         }
 
@@ -40,29 +44,29 @@ public class DataGeneratorService : IDataGeneratorService
         return records;
     }
 
-    private async Task GenerateFieldsAsync(List<FieldDefinition> fields, Dictionary<string, object> record, Faker faker)
+    private async Task GenerateFieldsAsync(List<FieldDefinition> fields, Dictionary<string, object> record, Faker faker, GenerationContext context)
     {
         foreach (var field in fields)
         {
-            var value = await GenerateFieldValueAsync(field, faker);
+            var value = await GenerateFieldValueAsync(field, faker, context);
             record[field.Name] = value;
         }
     }
 
-    private async Task<object> GenerateFieldValueAsync(FieldDefinition field, Faker faker)
+    private async Task<object> GenerateFieldValueAsync(FieldDefinition field, Faker faker, GenerationContext context)
     {
         // Check for auto-increment constraint
         if (field.Constraints?.ContainsKey("autoIncrement") == true && 
             Convert.ToBoolean(field.Constraints["autoIncrement"]))
         {
-            return _autoIncrementCounter++;
+            return context.AutoIncrementCounter++;
         }
 
         // Handle nested objects
         if (field.Type.Equals("object", StringComparison.OrdinalIgnoreCase) && field.Fields != null)
         {
             var nestedObject = new Dictionary<string, object>();
-            await GenerateFieldsAsync(field.Fields, nestedObject, faker);
+            await GenerateFieldsAsync(field.Fields, nestedObject, faker, context);
             return nestedObject;
         }
 
@@ -103,22 +107,24 @@ public class DataGeneratorService : IDataGeneratorService
             "currency" => faker.Finance.Currency().Code,
             "iban" => faker.Finance.Iban(),
             "bic" => faker.Finance.Bic(),
-            _ => await HandleUnknownTypeAsync(field, faker)
+            _ => await HandleUnknownTypeAsync(field, faker, context)
         };
     }
 
-    private async Task<object> HandleUnknownTypeAsync(FieldDefinition field, Faker faker)
+    private async Task<object> HandleUnknownTypeAsync(FieldDefinition field, Faker faker, GenerationContext context)
     {
         _logger.LogWarning("Unknown field type: {Type} for field: {Name}. Using AI suggestion or default.", 
             field.Type, field.Name);
 
         try
         {
-            // Try to get AI suggestion for the type
+            // Try to get AI suggestion for the type (only once to prevent infinite recursion)
             var suggestedType = await _aiService.SuggestDataTypeAsync(field.Name, field.Type);
             
-            // Retry with suggested type
-            if (!string.IsNullOrEmpty(suggestedType) && suggestedType != field.Type)
+            // Retry with suggested type only if it's different and is a known type
+            if (!string.IsNullOrEmpty(suggestedType) && 
+                suggestedType != field.Type &&
+                IsKnownType(suggestedType))
             {
                 var tempField = new FieldDefinition 
                 { 
@@ -126,7 +132,7 @@ public class DataGeneratorService : IDataGeneratorService
                     Type = suggestedType,
                     Constraints = field.Constraints 
                 };
-                return await GenerateFieldValueAsync(tempField, faker);
+                return await GenerateFieldValueAsync(tempField, faker, context);
             }
         }
         catch (Exception ex)
@@ -136,6 +142,22 @@ public class DataGeneratorService : IDataGeneratorService
 
         // Default fallback
         return faker.Lorem.Word();
+    }
+
+    private bool IsKnownType(string type)
+    {
+        var knownTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "string", "int", "integer", "decimal", "double", "float",
+            "boolean", "bool", "date", "datetime",
+            "email", "phone", "address", "street", "city", "state", "zipcode", "country",
+            "firstname", "lastname", "fullname", "name",
+            "company", "jobtitle", "url", "website", "ipaddress", "username", "password",
+            "uuid", "guid", "lorem", "text", "paragraph",
+            "product", "price", "department", "color",
+            "creditcard", "currency", "iban", "bic"
+        };
+        return knownTypes.Contains(type);
     }
 
     public string ConvertToCsv(List<Dictionary<string, object>> data)
@@ -205,10 +227,13 @@ public class DataGeneratorService : IDataGeneratorService
 
         var sb = new StringBuilder();
         var allKeys = data.SelectMany(d => d.Keys).Distinct().OrderBy(k => k).ToList();
+        
+        // Escape table name to prevent SQL injection
+        var escapedTableName = EscapeSqlIdentifier(tableName);
 
         foreach (var record in data)
         {
-            var columns = string.Join(", ", allKeys);
+            var escapedColumns = string.Join(", ", allKeys.Select(EscapeSqlIdentifier));
             var values = allKeys.Select(key =>
             {
                 if (record.TryGetValue(key, out var value))
@@ -218,10 +243,18 @@ public class DataGeneratorService : IDataGeneratorService
                 return "NULL";
             });
 
-            sb.AppendLine($"INSERT INTO {tableName} ({columns}) VALUES ({string.Join(", ", values)});");
+            sb.AppendLine($"INSERT INTO {escapedTableName} ({escapedColumns}) VALUES ({string.Join(", ", values)});");
         }
 
         return sb.ToString();
+    }
+
+    private string EscapeSqlIdentifier(string identifier)
+    {
+        // Use square brackets for SQL Server, can be adapted for other databases
+        // Remove existing brackets and escape internal brackets
+        var cleaned = identifier.Replace("[", "").Replace("]", "");
+        return $"[{cleaned}]";
     }
 
     private string FormatSqlValue(object value)
