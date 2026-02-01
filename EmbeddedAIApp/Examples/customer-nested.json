@@ -1,0 +1,51 @@
+{
+  "structure": {
+    "entityName": "Customer",
+    "fields": [
+      {
+        "name": "Id",
+        "type": "uuid"
+      },
+      {
+        "name": "Name",
+        "type": "fullname"
+      },
+      {
+        "name": "Email",
+        "type": "email"
+      },
+      {
+        "name": "Phone",
+        "type": "phone"
+      },
+      {
+        "name": "Address",
+        "type": "object",
+        "fields": [
+          {
+            "name": "Street",
+            "type": "street"
+          },
+          {
+            "name": "City",
+            "type": "city"
+          },
+          {
+            "name": "State",
+            "type": "state"
+          },
+          {
+            "name": "ZipCode",
+            "type": "zipcode"
+          },
+          {
+            "name": "Country",
+            "type": "country"
+          }
+        ]
+      }
+    ]
+  },
+  "count": 5,
+  "format": "json"
+}

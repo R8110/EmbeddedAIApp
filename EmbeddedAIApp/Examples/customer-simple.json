@@ -1,0 +1,36 @@
+{
+  "structure": {
+    "entityName": "Customer",
+    "fields": [
+      {
+        "name": "Id",
+        "type": "int",
+        "constraints": {
+          "autoIncrement": true
+        }
+      },
+      {
+        "name": "FirstName",
+        "type": "firstname"
+      },
+      {
+        "name": "LastName",
+        "type": "lastname"
+      },
+      {
+        "name": "Email",
+        "type": "email"
+      },
+      {
+        "name": "Phone",
+        "type": "phone"
+      },
+      {
+        "name": "BirthDate",
+        "type": "date"
+      }
+    ]
+  },
+  "count": 10,
+  "format": "json"
+}
